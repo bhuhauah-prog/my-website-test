@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة إدارة الفيديوهات المتقدمة</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #5e43ee;
+            --accent: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #0f172a;
+            --darker: #0a1121;
+            --light: #f1f5f9;
+            --gray: #94a3b8;
+            --sidebar-width: 350px;
+            --sidebar-minimized: 80px;
+            --header-height: 70px;
+            --player-height: 65vh;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: var(--darker);
+            color: var(--light);
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        /* إشعارات */
+        .notification-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .notification {
+            padding: 15px 20px;
+            border-radius: 10px;
+            background: rgba(30, 41, 59, 0.95);
+            border-left: 4px solid var(--primary);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideIn 0.3s ease-out;
+            max-width: 350px;
+        }
+        
+        .notification.success {
+            border-left-color: var(--success);
+        }
+        
+        .notification.error {
+            border-left-color: var(--danger);
+        }
+        
+        .notification.warning {
+            border-left-color: var(--warning);
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .admin-container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        /* الشريط الجانبي مع قابلية السحب */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: rgba(15, 23, 42, 0.9);
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .sidebar-resize-handle {
+            position: absolute;
+            top: 0;
+            left: -5px;
+            width: 10px;
+            height: 100%;
+            cursor: col-resize;
+            z-index: 10;
+        }
+        
+        .sidebar-header {
+            padding: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .sidebar-title {
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        
+        .sidebar-controls {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .control-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(67, 97, 238, 0.2);
+            border: 1px solid rgba(67, 97, 238, 0.3);
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        
+        .control-btn:hover {
+            background: rgba(67, 97, 238, 0.4);
+            transform: scale(1.1);
+        }
+        
+        .sidebar-search {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .search-box {
+            position: relative;
+        }
+        
+        .search-box i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 10px 12px 10px 35px;
+            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--light);
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+        
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.2);
+        }
+        
+        .videos-count {
+            padding: 8px 12px;
+            font-size: 0.85rem;
+            color: var(--gray);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .video-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 12px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        
+        .video-card {
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .video-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            border-color: rgba(67, 97, 238, 0.3);
+        }
+        
+        .video-card.active {
+            background: rgba(67, 97, 238, 0.15);
+            border-color: var(--primary);
+        }
+        
+        .video-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        
+        .video-name {
+            font-weight: 600;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .video-platform {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            background: rgba(67, 97, 238, 0.2);
+            border: 1px solid var(--primary);
+        }
+        
+        .video-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--gray);
+        }
+        
+        .video-actions {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            display: none;
+        }
+        
+        .video-card:hover .video-actions {
+            display: flex;
+        }
+        
+        .video-action-btn {
+            width: 25px;
+            height: 25px;
+            border-radius: 5px;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .video-action-btn:hover {
+            background: var(--danger);
+        }
+        
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            transition: all 0.3s ease;
+        }
+        
+        .top-bar {
+            height: var(--header-height);
+            background: rgba(15, 23, 42, 0.8);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .player-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            max-height: var(--player-height);
+        }
+        
+        .player-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        
+        .player-title {
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .player-controls {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .player-nav-btn {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: rgba(67, 97, 238, 0.2);
+            border: 1px solid var(--primary);
+            color: var(--light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .player-nav-btn:hover {
+            background: rgba(67, 97, 238, 0.4);
+            transform: scale(1.1);
+        }
+        
+        .player-nav-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .player-wrapper {
+            position: relative;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 23, 42, 0.3);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+            background: #000;
+        }
+        
+        .tiktok-container, .twitter-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .fallback-message {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .fallback-message .btn {
+            margin-top: 15px;
+            padding: 10px 20px;
+            background: var(--primary);
+            color: white;
+            border-radius: 5px;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        .fallback-message .btn:hover {
+            background: var(--secondary);
+            transform: translateY(-2px);
+        }
+        
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        
+        .player-placeholder {
+            text-align: center;
+            color: var(--gray);
+            padding: 20px;
+        }
+        
+        .player-placeholder i {
+            font-size: 4rem;
+            margin-bottom: 15px;
+            opacity: 0.2;
+        }
+        
+        .player-size-control {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            display: flex;
+            gap: 8px;
+            background: rgba(15, 23, 42, 0.7);
+            border-radius: 8px;
+            padding: 6px;
+            backdrop-filter: blur(5px);
+        }
+        
+        .size-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            background: rgba(67, 97, 238, 0.2);
+            border: 1px solid rgba(67, 97, 238, 0.3);
+            color: var(--light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        
+        .size-btn:hover, .size-btn.active {
+            background: var(--primary);
+        }
+        
+        .video-info {
+            padding: 20px;
+            background: rgba(15, 23, 42, 0.5);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 15px;
+        }
+        
+        .info-card {
+            background: rgba(30, 41, 59, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s;
+        }
+        
+        .info-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .info-title {
+            font-size: 0.85rem;
+            color: var(--gray);
+            margin-bottom: 6px;
+        }
+        
+        .info-value {
+            font-size: 1rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .sidebar.minimized {
+            width: var(--sidebar-minimized);
+        }
+        
+        .sidebar.minimized .sidebar-title span,
+        .sidebar.minimized .videos-count span,
+        .sidebar.minimized .video-name span,
+        .sidebar.minimized .video-meta,
+        .sidebar.minimized .video-platform {
+            display: none;
+        }
+        
+        .sidebar.minimized .sidebar-header {
+            justify-content: center;
+        }
+        
+        .sidebar.minimized .video-card {
+            padding: 12px;
+            text-align: center;
+        }
+        
+        .sidebar.minimized .video-name {
+            justify-content: center;
+        }
+        
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(67, 97, 238, 0.2);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 30px;
+            color: var(--gray);
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+        
+        /* شريط التقدم */
+        .progress-bar {
+            height: 4px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        
+        .progress {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+       /* وسائط الاستجابة - يجب إضافتها في نهاية ملف CSS */
+
+@media (max-width: 1200px) {
+    .sidebar {
+        width: 320px;
+    }
+    
+    .brand span {
+        font-size: 1.1rem;
+    }
+    
+    .player-title {
+        font-size: 1.2rem;
+    }
+}
+
+@media (max-width: 992px) {
+    .admin-container {
+        flex-direction: column;
+    }
+    
+    .sidebar {
+        width: 100%;
+        height: 40vh;
+        min-height: 300px;
+    }
+    
+    .player-container {
+        max-height: 50vh;
+        min-height: 300px;
+    }
+    
+    .sidebar-resize-handle {
+        display: none;
+    }
+    
+    .top-bar {
+        padding: 0 15px;
+    }
+    
+    .brand span {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .sidebar-header {
+        padding: 12px;
+    }
+    
+    .sidebar-title {
+        font-size: 1.1rem;
+    }
+    
+    .player-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+    
+    .player-controls {
+        align-self: stretch;
+        justify-content: center;
+    }
+    
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .player-title {
+        font-size: 1.1rem;
+    }
+    
+    .video-info {
+        padding: 15px;
+    }
+    
+    .info-card {
+        padding: 12px;
+    }
+}
+
+@media (max-width: 576px) {
+    .sidebar-header {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+    
+    .sidebar-controls {
+        justify-content: center;
+    }
+    
+    .top-bar {
+        flex-direction: column;
+        height: auto;
+        padding: 15px;
+        gap: 15px;
+    }
+    
+    .user-controls {
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+    }
+    
+    .user-info {
+        justify-content: center;
+    }
+    
+    .btn-logout {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .player-container {
+        padding: 15px;
+    }
+    
+    .player-nav-btn {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .notification-container {
+        right: 10px;
+        left: 10px;
+        align-items: center;
+    }
+    
+    .notification {
+        max-width: 100%;
+    }
+}
+
+/* تحسينات للشاشات الصغيرة جداً */
+@media (max-width: 400px) {
+    .sidebar-title span,
+    .brand span {
+        font-size: 0.9rem;
+    }
+    
+    .player-title {
+        font-size: 1rem;
+    }
+    
+    .video-name {
+        font-size: 0.9rem;
+    }
+    
+    .info-value {
+        font-size: 0.9rem;
+    }
+}
+
+/* تحسينات للوضع الأفقي على الهواتف */
+@media (max-height: 500px) and (orientation: landscape) {
+    .sidebar {
+        height: 50vh;
+    }
+    
+    .player-container {
+        max-height: 40vh;
+    }
+}
+
+/* منع تكبير النص على iOS */
+@media screen and (max-device-width: 480px) {
+    body {
+        -webkit-text-size-adjust: none;
+    }
+}
+
+/* تحسين المظهر على متصفحات مختلفة */
+@supports (-webkit-touch-callout: none) {
+    /* خاص بـ iOS */
+    .sidebar {
+        height: 40vh;
+        max-height: 40vh;
+    }
+}
+
+/* تحسينات للوضع الداكن في المتصفحات */
+@media (prefers-color-scheme: dark) {
+    body {
+        background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 100%);
+    }
+}
+        /* تأثيرات التحميل */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        /* تنسيق الأزرار */
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            background: rgba(67, 97, 238, 0.2);
+            border: 1px solid rgba(67, 97, 238, 0.3);
+            color: var(--light);
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+        
+        .btn:hover {
+            background: rgba(67, 97, 238, 0.4);
+        }
+        
+        .btn-logout {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        
+        .btn-logout:hover {
+            background: rgba(239, 68, 68, 0.4);
+        }
+        
+        /* تخصيص شريط التمرير */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="notification-container" id="notification-container"></div>
+    
+    <div class="admin-container">
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-resize-handle" id="resize-handle"></div>
+            <div class="sidebar-header">
+                <div class="sidebar-title">
+                    <i class="fas fa-film"></i>
+                    <span>قائمة الفيديوهات</span>
+                </div>
+                <div class="sidebar-controls">
+                    <div class="control-btn" id="minimize-btn" title="تصغير الشريط الجانبي">
+                        <i class="fas fa-compress"></i>
+                    </div>
+                    <div class="control-btn" id="reload-btn" title="تحديث القائمة">
+                        <i class="fas fa-sync-alt"></i>
+                    </div>
+                    <div class="control-btn" id="clear-btn" title="مسح الكل">
+                        <i class="fas fa-trash"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="sidebar-search">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="search-input" placeholder="ابحث عن فيديو...">
+                </div>
+            </div>
+            
+            <div class="videos-count">
+                <i class="fas fa-video"></i>
+                <span id="videos-count">0 فيديو</span>
+            </div>
+            
+            <div class="sidebar-content">
+                <div class="video-list" id="video-list">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="main-content" id="main-content">
+            <div class="top-bar">
+                <div class="brand">
+                    <i class="fas fa-video"></i>
+                    <span>لوحة إدارة الفيديوهات المتقدمة</span>
+                </div>
+                
+                <div class="user-controls">
+                    <div class="user-info">
+                        <div class="user-avatar">
+                            <i class="fas fa-user-shield"></i>
+                        </div>
+                        <span>مدير النظام</span>
+                    </div>
+                    <button class="btn btn-logout" id="logout-btn">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>تسجيل الخروج</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="player-container">
+                <div class="player-header">
+                    <div class="player-title">
+                        <i class="fas fa-play-circle"></i>
+                        <span id="player-title">اختر فيديو للعرض</span>
+                    </div>
+                    
+                    <div class="player-controls">
+                        <div class="player-nav-btn" id="prev-btn" title="الفيديو السابق">
+                            <i class="fas fa-arrow-left"></i>
+                        </div>
+                        <div class="player-nav-btn" id="next-btn" title="الفيديو التالي">
+                            <i class="fas fa-arrow-right"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="player-wrapper" id="player-wrapper">
+                    <div class="player-placeholder">
+                        <i class="fas fa-film"></i>
+                        <h3>لم يتم اختيار فيديو</h3>
+                        <p>الرجاء اختيار فيديو من القائمة الجانبية للعرض</p>
+                    </div>
+                </div>
+                
+                <div class="player-size-control">
+                    <div class="size-btn active" data-size="full" title="الحجم الكامل">
+                        <i class="fas fa-expand"></i>
+                    </div>
+                    <div class="size-btn" data-size="medium" title="الحجم المتوسط">
+                        <i class="fas fa-desktop"></i>
+                    </div>
+                    <div class="size-btn" data-size="small" title="الحجم الصغير">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="video-info">
+                <div class="info-grid">
+                    <div class="info-card">
+                        <div class="info-title">اسم المرسل</div>
+                        <div class="info-value" id="sender-name">
+                            <i class="fas fa-user"></i>
+                            <span>-</span>
+                        </div>
+                    </div>
+                    
+                    <div class="info-card">
+                        <div class="info-title">المنصة</div>
+                        <div class="info-value" id="video-platform">
+                            <i class="fas fa-globe"></i>
+                            <span>-</span>
+                        </div>
+                    </div>
+                    
+                    <div class="info-card">
+                        <div class="info-title">تاريخ الإضافة</div>
+                        <div class="info-value" id="video-date">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>-</span>
+                        </div>
+                    </div>
+                    
+                    <div class="info-card">
+                        <div class="info-title">الحالة</div>
+                        <div class="info-value" id="video-status">
+                            <i class="fas fa-circle"></i>
+                            <span>غير محمل</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // العناصر الرئيسية
+        const videoList = document.getElementById('video-list');
+        const playerWrapper = document.getElementById('player-wrapper');
+        const playerTitle = document.getElementById('player-title');
+        const senderName = document.getElementById('sender-name').querySelector('span');
+        const videoPlatform = document.getElementById('video-platform').querySelector('span');
+        const videoDate = document.getElementById('video-date').querySelector('span');
+        const videoStatus = document.getElementById('video-status').querySelector('span');
+        const videosCount = document.getElementById('videos-count');
+        const notificationContainer = document.getElementById('notification-container');
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('main-content');
+        const resizeHandle = document.getElementById('resize-handle');
+        
+        // أزرار التحكم
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const reloadBtn = document.getElementById('reload-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const minimizeBtn = document.getElementById('minimize-btn');
+        const sizeButtons = document.querySelectorAll('.size-btn');
+        
+        // المتغيرات العامة
+        let videos = [];
+        let currentVideoIndex = -1;
+        let sidebarMinimized = false;
+        let playerSize = 'full';
+        let isResizing = false;
+        
+        // إشعارات
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            
+            let icon = 'fa-info-circle';
+            if (type === 'success') icon = 'fa-check-circle';
+            if (type === 'error') icon = 'fa-exclamation-circle';
+            if (type === 'warning') icon = 'fa-exclamation-triangle';
+            
+            notification.innerHTML = `
+                <i class="fas ${icon}"></i>
+                <span>${message}</span>
+            `;
+            
+            notificationContainer.appendChild(notification);
+            
+            // إزالة الإشعار بعد 5 ثواني
+            setTimeout(() => {
+                notification.style.animation = 'slideIn 0.3s ease-out reverse';
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, 5000);
+        }
+        
+        // تحميل الفيديوهات
+        async function loadVideos() {
+            try {
+                videoList.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+                
+                const response = await fetch('/api/videos');
+                if (!response.ok) throw new Error('فشل في تحميل الفيديوهات');
+                
+                videos = await response.json();
+                renderVideoList();
+                
+                videosCount.textContent = `${videos.length} فيديو`;
+                
+                if (videos.length > 0) {
+                    playVideo(0);
+                }
+                
+                showNotification('تم تحميل الفيديوهات بنجاح', 'success');
+            } catch (error) {
+                videoList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+                showNotification('فشل في تحميل الفيديوهات', 'error');
+            }
+        }
+        
+        // عرض قائمة الفيديوهات
+        function renderVideoList() {
+            if (videos.length === 0) {
+                videoList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-film"></i>
+                        <p>لا توجد فيديوهات متاحة</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            videos.forEach((video, index) => {
+                const isActive = index === currentVideoIndex ? 'active' : '';
+                const date = new Date(video.created_at);
+                const formattedDate = `${date.getDate()}/${date.getMonth()+1}/${date.getFullYear()}`;
+                
+                html += `
+                    <div class="video-card ${isActive}" data-id="${video.id}" data-index="${index}">
+                        <div class="video-actions">
+                            <button class="video-action-btn" onclick="deleteVideo(event, ${video.id})" title="حذف الفيديو">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="video-header">
+                            <div class="video-name">
+                                <i class="fas fa-video"></i>
+                                <span>${video.name}</span>
+                            </div>
+                            <div class="video-platform">${video.platform}</div>
+                        </div>
+                        <div class="video-meta">
+                            <span>${formattedDate}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            videoList.innerHTML = html;
+            
+            // إضافة مستمعي الأحداث
+            document.querySelectorAll('.video-card').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    // منع التنشيط عند النقر على زر الحذف
+                    if (!e.target.closest('.video-action-btn')) {
+                        const index = parseInt(card.dataset.index);
+                        playVideo(index);
+                    }
+                });
+            });
+        }
+        
+        // حذف فيديو
+        async function deleteVideo(event, videoId) {
+            event.stopPropagation();
+            
+            if (!confirm('هل أنت متأكد من رغبتك في حذف هذا الفيديو؟')) return;
+            
+            try {
+                const response = await fetch(`/api/videos/${videoId}/delete`, {
+                    method: 'DELETE'
+                });
+                
+                if (!response.ok) throw new Error('فشل في حذف الفيديو');
+                
+                // إزالة الفيديو من القائمة
+                videos = videos.filter(video => video.id !== videoId);
+                
+                // إعادة تحميل القائمة
+                renderVideoList();
+                
+                // إذا كان الفيديو المحذوف هو المعروض حالياً
+                if (currentVideoIndex >= videos.length) {
+                    currentVideoIndex = videos.length - 1;
+                    if (currentVideoIndex >= 0) {
+                        playVideo(currentVideoIndex);
+                    } else {
+                        playerWrapper.innerHTML = '<div class="player-placeholder"><i class="fas fa-film"></i><h3>لا توجد فيديوهات</h3><p>تم حذف جميع الفيديوهات</p></div>';
+                        playerTitle.textContent = 'اختر فيديو للعرض';
+                        senderName.textContent = '-';
+                        videoPlatform.textContent = '-';
+                        videoDate.textContent = '-';
+                        videoStatus.textContent = 'لا توجد فيديوهات';
+                        videoStatus.previousElementSibling.style.color = '#ef4444';
+                    }
+                }
+                
+                videosCount.textContent = `${videos.length} فيديو`;
+                
+                showNotification('تم حذف الفيديو بنجاح', 'success');
+            } catch (error) {
+                showNotification('فشل في حذف الفيديو', 'error');
+            }
+        }
+        
+        // تشغيل الفيديو
+        function playVideo(index) {
+            if (index < 0 || index >= videos.length) return;
+            
+            currentVideoIndex = index;
+            const video = videos[index];
+            
+            playerTitle.textContent = video.name;
+            senderName.textContent = video.name;
+            videoPlatform.textContent = video.platform;
+            
+            const date = new Date(video.created_at);
+            videoDate.textContent = `${date.getDate()}/${date.getMonth()+1}/${date.getFullYear()} ${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
+            
+            videoStatus.textContent = 'يعرض الآن';
+            videoStatus.previousElementSibling.style.color = '#10b981';
+            
+            // تحديث القائمة
+            document.querySelectorAll('.video-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            document.querySelector(`.video-card[data-index="${index}"]`).classList.add('active');
+            
+            // تحديث أزرار التنقل
+            updateNavigationButtons();
+            
+            const platform = video.platform.toLowerCase();
+            let playerHtml = '';
+
+            if (platform.includes('tiktok')) {
+                playerHtml = `
+                    <div class="tiktok-container">
+                        <iframe src="${video.embed_url}" 
+                            frameborder="0" 
+                            allowfullscreen
+                            sandbox="allow-scripts allow-same-origin allow-popups"
+                            referrerpolicy="no-referrer-when-downgrade">
+                        </iframe>
+                        <div class="fallback-message">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <p>تعذر تحميل محتوى TikTok</p>
+                            <a href="${video.url}" target="_blank" class="btn">فتح في TikTok</a>
+                        </div>
+                    </div>
+                `;
+            }
+            else if (platform.includes('twitter') || platform.includes('x')) {
+                playerHtml = `
+                    <div class="twitter-container">
+                        <iframe src="${video.embed_url}" 
+                            frameborder="0" 
+                            scrolling="no"
+                            sandbox="allow-scripts allow-same-origin allow-popups"
+                            referrerpolicy="no-referrer-when-downgrade">
+                        </iframe>
+                        <div class="fallback-message">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <p>تعذر تحميل محتوى Twitter</p>
+                            <a href="${video.url}" target="_blank" class="btn">فتح في Twitter</a>
+                        </div>
+                    </div>
+                `;
+            }
+            else {
+                playerHtml = `
+                    <iframe src="${video.embed_url}" 
+                        frameborder="0" 
+                        allowfullscreen
+                        style="width:100%;height:100%;">
+                    </iframe>
+                `;
+            }
+
+            playerWrapper.innerHTML = playerHtml;
+            
+            const iframe = playerWrapper.querySelector('iframe');
+            if (iframe) {
+                iframe.onload = function() {
+                    const fallback = playerWrapper.querySelector('.fallback-message');
+                    if (fallback) fallback.style.display = 'none';
+                };
+                iframe.onerror = function() {
+                    const fallback = playerWrapper.querySelector('.fallback-message');
+                    if (fallback) fallback.style.display = 'flex';
+                };
+            }
+            
+            setPlayerSize();
+        }
+        
+        // تحديث أزرار التنقل
+        function updateNavigationButtons() {
+            prevBtn.disabled = currentVideoIndex <= 0;
+            nextBtn.disabled = currentVideoIndex >= videos.length - 1;
+        }
+        
+        // الفيديو التالي
+        function nextVideo() {
+            if (videos.length === 0 || currentVideoIndex >= videos.length - 1) return;
+            const nextIndex = currentVideoIndex + 1;
+            playVideo(nextIndex);
+        }
+        
+        // الفيديو السابق
+        function prevVideo() {
+            if (videos.length === 0 || currentVideoIndex <= 0) return;
+            const prevIndex = currentVideoIndex - 1;
+            playVideo(prevIndex);
+        }
+        
+        // تحديث القائمة
+        async function reloadVideos() {
+            await loadVideos();
+            showNotification('جاري تحديث قائمة الفيديوهات...', 'info');
+        }
+        
+        // مسح جميع الفيديوهات
+        async function clearVideos() {
+            if (!confirm('هل أنت متأكد من رغبتك في حذف جميع الفيديوهات؟ لا يمكن التراجع عن هذا الإجراء.')) return;
+            
+            try {
+                const response = await fetch('/api/videos/clear', {
+                    method: 'POST'
+                });
+                
+                if (!response.ok) throw new Error('فشل في حذف الفيديوهات');
+                
+                videos = [];
+                currentVideoIndex = -1;
+                renderVideoList();
+                playerWrapper.innerHTML = '<div class="player-placeholder"><i class="fas fa-film"></i><h3>لا توجد فيديوهات</h3><p>تم حذف جميع الفيديوهات</p></div>';
+                videosCount.textContent = '0 فيديو';
+                
+                playerTitle.textContent = 'اختر فيديو للعرض';
+                senderName.textContent = '-';
+                videoPlatform.textContent = '-';
+                videoDate.textContent = '-';
+                videoStatus.textContent = 'لا توجد فيديوهات';
+                videoStatus.previousElementSibling.style.color = '#ef4444';
+                
+                updateNavigationButtons();
+                
+                showNotification('تم حذف جميع الفيديوهات بنجاح', 'success');
+            } catch (error) {
+                showNotification('فشل في حذف الفيديوهات', 'error');
+            }
+        }
+        
+        // تسجيل الخروج
+        function logout() {
+            fetch('/admin/logout')
+                .then(() => {
+                    window.location.href = '/admin/login';
+                });
+        }
+        
+        // تصغير/تكبير الشريط الجانبي
+        function toggleSidebar() {
+            sidebarMinimized = !sidebarMinimized;
+            sidebar.classList.toggle('minimized', sidebarMinimized);
+            minimizeBtn.innerHTML = sidebarMinimized ? 
+                '<i class="fas fa-expand"></i>' : 
+                '<i class="fas fa-compress"></i>';
+            minimizeBtn.title = sidebarMinimized ? 'تكبير الشريط الجانبي' : 'تصغير الشريط الجانبي';
+        }
+        
+        // ضبط حجم مشغل الفيديو
+        function setPlayerSize() {
+            playerWrapper.className = 'player-wrapper';
+            if (playerSize !== 'full') {
+                playerWrapper.classList.add(`${playerSize}-size`);
+            }
+        }
+        
+        // البحث في الفيديوهات
+        function searchVideos(term) {
+            const filteredVideos = videos.filter(video => 
+                video.name.toLowerCase().includes(term.toLowerCase()) || 
+                video.platform.toLowerCase().includes(term.toLowerCase())
+            );
+            
+            let html = '';
+            if (filteredVideos.length === 0) {
+                html = '<div class="empty-state"><i class="fas fa-search"></i><p>لا توجد نتائج</p></div>';
+            } else {
+                filteredVideos.forEach(video => {
+                    const date = new Date(video.created_at);
+                    const formattedDate = `${date.getDate()}/${date.getMonth()+1}/${date.getFullYear()}`;
+                    
+                    html += `
+                        <div class="video-card" data-id="${video.id}">
+                            <div class="video-actions">
+                                <button class="video-action-btn" onclick="deleteVideo(event, ${video.id})" title="حذف الفيديو">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="video-header">
+                                <div class="video-name">
+                                    <i class="fas fa-video"></i>
+                                    <span>${video.name}</span>
+                                </div>
+                                <div class="video-platform">${video.platform}</div>
+                            </div>
+                            <div class="video-meta">
+                                <span>${formattedDate}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            videoList.innerHTML = html;
+            
+            // إضافة مستمعي الأحداث للنتائج
+            document.querySelectorAll('.video-card').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    if (!e.target.closest('.video-action-btn')) {
+                        const id = parseInt(card.dataset.id);
+                        const index = videos.findIndex(v => v.id === id);
+                        if (index !== -1) playVideo(index);
+                    }
+                });
+            });
+        }
+        
+        // تكبير/تصغير الشريط الجانبي بالسحب
+        function initResize() {
+            resizeHandle.addEventListener('mousedown', function(e) {
+                isResizing = true;
+                document.body.style.cursor = 'col-resize';
+                document.addEventListener('mousemove', handleResize);
+                document.addEventListener('mouseup', stopResize);
+            });
+            
+            function handleResize(e) {
+                if (!isResizing) return;
+                
+                const newWidth = Math.max(200, Math.min(600, e.clientX));
+                sidebar.style.width = `${newWidth}px`;
+            }
+            
+            function stopResize() {
+                isResizing = false;
+                document.body.style.cursor = '';
+                document.removeEventListener('mousemove', handleResize);
+                document.removeEventListener('mouseup', stopResize);
+            }
+        }
+        
+        // تهيئة الأحداث
+        function initEvents() {
+            prevBtn.addEventListener('click', prevVideo);
+            nextBtn.addEventListener('click', nextVideo);
+            reloadBtn.addEventListener('click', reloadVideos);
+            clearBtn.addEventListener('click', clearVideos);
+            logoutBtn.addEventListener('click', logout);
+            minimizeBtn.addEventListener('click', toggleSidebar);
+            
+            // أحداث أزرار التحكم بالحجم
+            sizeButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    sizeButtons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    playerSize = btn.dataset.size;
+                    setPlayerSize();
+                });
+            });
+            
+            // حدث البحث
+            const searchInput = document.getElementById('search-input');
+            let searchTimeout;
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    searchVideos(e.target.value);
+                }, 300);
+            });
+            
+            // إضافة اختصارات لوحة المفاتيح
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowRight') nextVideo();
+                if (e.key === 'ArrowLeft') prevVideo();
+                if (e.key === 'r' && e.ctrlKey) {
+                    e.preventDefault();
+                    reloadVideos();
+                }
+                if (e.key === 'Escape') {
+                    const activeCard = document.querySelector('.video-card.active');
+                    if (activeCard) activeCard.classList.remove('active');
+                }
+            });
+            
+            // تهيئة السحب للتكبير/التصغير
+            initResize();
+        }
+        
+        // تهيئة التطبيق
+        document.addEventListener('DOMContentLoaded', () => {
+            initEvents();
+            loadVideos();
+            
+            // إضافة تأثير ظهور عند التحميل
+            document.body.classList.add('fade-in');
+        });
+    </script>
+</body>
+</html>

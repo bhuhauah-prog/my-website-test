@@ -1,0 +1,3 @@
+flask
+requests 
+pip freeze > requirements.txt
